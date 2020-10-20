@@ -1,3 +1,6 @@
+version = 0, 0, 1, 1
+
+
 class MockFunction(object):
     #
     def __init__(self, name, return_value=None):
