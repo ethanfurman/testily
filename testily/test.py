@@ -1,6 +1,16 @@
-import testily
-from testily import MockFunction, Patch
+from antipathy import Path
+from compileall import compile_file
 from unittest import TestCase, main
+from tempfile import mkdtemp
+from textwrap import dedent
+import sys
+
+import testily
+from testily import MockFunction, Patch, import_script
+
+TEMPDIR = Path(mkdtemp())
+TEMPDIR.rmtree(ignore_errors=True)
+
 
 class TestMockFunction(TestCase):
     #
@@ -41,4 +51,51 @@ class TestPatch(TestCase):
         self.assertTrue(MockFunction == testily.MockFunction)
 
 
-main()
+class TestImportScript(TestCase):
+    #
+    def setUp(self):
+        TEMPDIR.rmtree(ignore_errors=True)
+        TEMPDIR.mkdir()
+    #
+    def test_error(self):
+        self.assertRaises(TypeError, import_script, 'hello.py')
+    #
+    def test_simple_import(self):
+        script = TEMPDIR / 'hah'
+        with script.open('w') as fh:
+            fh.write(dedent("""\
+                    def hello():
+                        return 'hello'
+                    """))
+        huh = import_script(script)
+        self.assertEqual(huh.__file__, script)
+        import hah
+        self.assertTrue(huh is hah)
+        self.assertEqual(hah.hello(), 'hello')
+    #
+    def test_shadowed_import(self):
+        script = TEMPDIR / 'woa'
+        with script.open('w') as fh:
+            fh.write(dedent("""\
+                    def hello():
+                        return 'hello'
+                    """))
+        shadow_script = script + '.py'
+        with shadow_script.open('w') as fh:
+            fh.write(dedent("""\
+                    def hello():
+                        return 'goodbye'
+                    """))
+        compile_file(str(shadow_script))
+        wah = import_script(script)
+        self.assertEqual(wah.__file__, script)
+        import woa
+        self.assertTrue(wah is woa)
+        self.assertEqual(woa.hello(), 'hello')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    finally:
+        TEMPDIR.rmtree(ignore_errors=True)
