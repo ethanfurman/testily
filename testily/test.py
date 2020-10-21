@@ -50,6 +50,53 @@ class TestPatch(TestCase):
             self.assertTrue(p.original_objs['MockFunction'] is MockFunction)
         self.assertTrue(MockFunction == testily.MockFunction)
 
+    def test_init_failure(self):
+        class UnBreakableType(type):
+            @property
+            def immovable(cls):
+                pass
+            def movable(cls):
+                pass
+        UnBreakable = UnBreakableType('UnBreakable', (object, ), {})
+        original_movable = UnBreakable.movable
+        original_immovable = UnBreakable.immovable
+        #
+        UnBreakable.movable = 'okay'
+        self.assertEqual(UnBreakable.movable, 'okay')
+        UnBreakable.movable = original_movable
+        self.assertTrue(getattr(UnBreakable, 'immovable') is UnBreakable.immovable)
+        #
+        with self.assertRaises(AttributeError):
+            UnBreakable.immovable = 'nope!'
+        #
+        with Patch(UnBreakable, 'movable') as p:
+            self.assertTrue(isinstance(UnBreakable.movable, MockFunction))
+        self.assertTrue(original_movable is UnBreakable.movable)
+        #
+        try:
+            with Patch(UnBreakable, 'movable', 'immovable') as p:
+                self.assertFalse('Patch succeeded')
+        except AttributeError:
+            self.assertTrue(original_movable is UnBreakable.movable)
+
+    def test_metaclass_property(self):
+        class UnBreakableType(type):
+            @property
+            def immovable(cls):
+                pass
+            def movable(cls):
+                pass
+        UnBreakable = UnBreakableType('UnBreakable', (object, ), {})
+        original_movable = UnBreakable.movable
+        original_immovable = UnBreakable.immovable
+        #
+        with Patch(UnBreakableType, 'immovable') as mp:
+            with Patch(UnBreakable, 'immovable') as p:
+                self.assertTrue(isinstance(UnBreakable.immovable, MockFunction))
+            self.assertEqual(UnBreakable.__dict__.get('immovable', 'gone'), 'gone')
+            self.assertTrue(isinstance(getattr(UnBreakable, 'immovable'), MockFunction))
+        self.assertTrue(UnBreakable.immovable is original_immovable)
+
 
 class TestImportScript(TestCase):
 

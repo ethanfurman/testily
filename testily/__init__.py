@@ -1,6 +1,7 @@
 version = 0, 0, 2, 1
 
 from antipathy import Path
+from scription import Sentinel
 import imp
 import os
 import sys
@@ -57,20 +58,30 @@ class Patch(object):
     #
     def __init__(self, namespace, *names):
         self.namespace = namespace
-        self.names = names
         self.original_objs = {}
-        for f in names:
-            orig = getattr(namespace, f)
-            patch = MockFunction(f)
-            self.original_objs[f] = orig
-            setattr(self, f, patch)
-            setattr(namespace, f, patch)
+        try:
+            for name in names:
+                obj = namespace.__dict__.get(name, Null)
+                patch = MockFunction(name)
+                setattr(self, name, patch)
+                setattr(namespace, name, patch)
+                self.original_objs[name] = obj
+        except Exception:
+            for name, obj in self.original_objs.items():
+                if obj is not Null:
+                    setattr(namespace, name, obj)
+                else:
+                    delattr(namespace, name)
+            raise
     #
     def __enter__(self):
         return self
     #
     def __exit__(self, *exc):
-        for f in self.names:
-            setattr(self.namespace, f, self.original_objs[f])
+        for name, obj in self.original_objs.items():
+            if obj is not Null:
+                setattr(self.namespace, name, obj)
+            else:
+                delattr(self.namespace, name)
 
-
+Null = Sentinel('Null', boolean=False)
