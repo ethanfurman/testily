@@ -13,7 +13,7 @@ TEMPDIR.rmtree(ignore_errors=True)
 
 
 class TestMockFunction(TestCase):
-    #
+ 
     def test_basics(self):
         huh = MockFunction('print')
         self.assertTrue(huh() is None)
@@ -40,7 +40,7 @@ class TestMockFunction(TestCase):
 
 
 class TestPatch(TestCase):
-    #
+ 
     def test_basics(self):
         with Patch(testily, 'MockFunction') as p:
             self.assertFalse(MockFunction == testily.MockFunction)
@@ -52,14 +52,14 @@ class TestPatch(TestCase):
 
 
 class TestImportScript(TestCase):
-    #
+
     def setUp(self):
         TEMPDIR.rmtree(ignore_errors=True)
         TEMPDIR.mkdir()
-    #
+
     def test_error(self):
         self.assertRaises(TypeError, import_script, 'hello.py')
-    #
+
     def test_simple_import(self):
         script = TEMPDIR / 'hah'
         with script.open('w') as fh:
@@ -72,7 +72,7 @@ class TestImportScript(TestCase):
         import hah
         self.assertTrue(huh is hah)
         self.assertEqual(hah.hello(), 'hello')
-    #
+
     def test_shadowed_import(self):
         script = TEMPDIR / 'woa'
         with script.open('w') as fh:
@@ -92,6 +92,21 @@ class TestImportScript(TestCase):
         import woa
         self.assertTrue(wah is woa)
         self.assertEqual(woa.hello(), 'hello')
+
+    def test_module_name(self):
+        script = TEMPDIR / 'hah'
+        with script.open('w') as fh:
+            fh.write(dedent("""\
+                    def hello():
+                        return 'hello'
+                    """))
+        huh = import_script(script, 'yup')
+        self.assertEqual(huh.__file__, script)
+        import yup
+        self.assertTrue(huh is yup)
+        self.assertEqual(yup.hello(), 'hello')
+        with self.assertRaises(ImportError):
+            import hah
 
 
 if __name__ == '__main__':
