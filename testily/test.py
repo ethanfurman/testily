@@ -6,49 +6,49 @@ from textwrap import dedent
 import sys
 
 import testily
-from testily import MockFunction, Patch, import_script
+from testily import Ersatz, Patch, import_script
 
 TEMPDIR = Path(mkdtemp())
 TEMPDIR.rmtree(ignore_errors=True)
 
 
-class TestMockFunction(TestCase):
+class TestErsatz(TestCase):
  
     def test_basics(self):
-        huh = MockFunction('print')
+        huh = Ersatz('print')
         self.assertTrue(huh() is None)
-        huh.return_value = 'yup indeed'
+        huh._return_ = 'yup indeed'
         self.assertEqual(huh(), 'yup indeed')
         self.assertEqual(
-                huh.called_kwds,
+                huh._called_kwds_,
                 [{}, {}],
                 )
         self.assertEqual(
-                huh.called_args,
+                huh._called_args_,
                 [(), ()],
                 )
         huh('this', that='there')
         self.assertEqual(
-                huh.called_args,
+                huh._called_args_,
                 [(), (), ('this',)],
                 )
         self.assertEqual(
-                huh.called_kwds,
+                huh._called_kwds_,
                 [{}, {}, {'that': 'there'}],
                 )
-        self.assertEqual(huh.called, 3)
+        self.assertEqual(huh._called_, 3)
 
 
 class TestPatch(TestCase):
  
     def test_basics(self):
-        with Patch(testily, 'MockFunction') as p:
-            self.assertFalse(MockFunction == testily.MockFunction)
-            self.assertTrue(isinstance(testily.MockFunction, MockFunction))
-            self.assertTrue(isinstance(p.MockFunction, MockFunction))
-            self.assertTrue(p.MockFunction is testily.MockFunction)
-            self.assertTrue(p.original_objs['MockFunction'] is MockFunction)
-        self.assertTrue(MockFunction == testily.MockFunction)
+        with Patch(testily, 'Ersatz') as p:
+            self.assertFalse(Ersatz == testily.Ersatz)
+            self.assertTrue(isinstance(testily.Ersatz, Ersatz))
+            self.assertTrue(isinstance(p.Ersatz, Ersatz))
+            self.assertTrue(p.Ersatz is testily.Ersatz)
+            self.assertTrue(p.original_objs['Ersatz'] is Ersatz)
+        self.assertTrue(Ersatz == testily.Ersatz)
 
     def test_init_failure(self):
         class UnBreakableType(type):
@@ -70,7 +70,7 @@ class TestPatch(TestCase):
             UnBreakable.immovable = 'nope!'
         #
         with Patch(UnBreakable, 'movable') as p:
-            self.assertTrue(isinstance(UnBreakable.movable, MockFunction))
+            self.assertTrue(isinstance(UnBreakable.movable, Ersatz))
         self.assertTrue(original_movable is UnBreakable.movable)
         #
         try:
@@ -92,9 +92,9 @@ class TestPatch(TestCase):
         #
         with Patch(UnBreakableType, 'immovable') as mp:
             with Patch(UnBreakable, 'immovable') as p:
-                self.assertTrue(isinstance(UnBreakable.immovable, MockFunction))
+                self.assertTrue(isinstance(UnBreakable.immovable, Ersatz))
             self.assertEqual(UnBreakable.__dict__.get('immovable', 'gone'), 'gone')
-            self.assertTrue(isinstance(getattr(UnBreakable, 'immovable'), MockFunction))
+            self.assertTrue(isinstance(getattr(UnBreakable, 'immovable'), Ersatz))
         self.assertTrue(UnBreakable.immovable is original_immovable)
 
 

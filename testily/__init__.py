@@ -1,4 +1,4 @@
-version = 0, 0, 2, 2
+version = 0, 0, 2, 4
 
 from antipathy import Path
 from scription import Sentinel
@@ -35,25 +35,36 @@ def import_script(file, module_name=None):
     return module
     
 
-class MockFunction(object):
+class Ersatz(object):
     #
-    def __init__(self, name, return_value=None):
-        self.name = name
-        self.return_value = return_value
-        self.called_args = []
-        self.called_kwds = []
+    __slots__ = '_called_args_', '_called_kwds_', '__dict__', '_return_',
+    #
+    def __init__(self, name=None):
+        self._name_ = name
+        self._called_args_ = []
+        self._called_kwds_ = []
+        self._return_ = None
     #
     def __repr__(self):
-        return "MockFunction_%s" % self.name
+        if self._name_ is None:
+            return "Ersatz()"
+        else:
+            return "Ersatz(%r)" % (self.name, )
     #
     def __call__(self, *args, **kwds):
-        self.called_args.append(args)
-        self.called_kwds.append(kwds)
-        return self.return_value
+        self._called_args_.append(args)
+        self._called_kwds_.append(kwds)
+        return self._return_
+    #
+    def __getattr__(self, name):
+        if name[:2] == name[-2:] == '__':
+            return super(Ersatz, self).__getattribute__(name)
+        return self.__class__(name)
     #
     @property
-    def called(self):
-        return len(self.called_args)
+    def _called_(self):
+        return len(self._called_args_)
+
 
 
 class Patch(object):
@@ -64,7 +75,7 @@ class Patch(object):
         try:
             for name in names:
                 obj = namespace.__dict__.get(name, Null)
-                patch = MockFunction(name)
+                patch = Ersatz(name)
                 setattr(self, name, patch)
                 setattr(namespace, name, patch)
                 self.original_objs[name] = obj
