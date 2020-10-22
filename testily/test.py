@@ -155,6 +155,24 @@ class TestImportScript(TestCase):
         with self.assertRaises(ImportError):
             import hah
 
+    def test_import_from_other_directory(self):
+        subdir = TEMPDIR / 'hah'
+        subdir.mkdir()
+        tools = subdir / 'tools.py'
+        with tools.open('w') as fh:
+            fh.write(dedent("""\
+                    def sigma(text):
+                        return text + 'oid'
+                    """))
+        script = subdir / 'heh'
+        with script.open('w') as fh:
+            fh.write(dedent("""\
+                    from tools import sigma
+                    def hello():
+                        return sigma('hello')
+                    """))
+        heh = import_script(script)
+        self.assertEqual(heh.hello(), 'hellooid')
 
 if __name__ == '__main__':
     try:

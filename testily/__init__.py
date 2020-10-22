@@ -1,4 +1,4 @@
-version = 0, 0, 2, 1
+version = 0, 0, 2, 2
 
 from antipathy import Path
 from scription import Sentinel
@@ -26,10 +26,12 @@ def import_script(file, module_name=None):
             shadow_file = disk_name + '.py'
         file.copy(disk_name)
     module_name = module_name or file.filename
+    sys.path.insert(0, disk_name.dirname)
     with disk_name.open('rb') as fh:
         fh.seek(0)
         module = imp.load_source(module_name, str(file))
     sys.modules[module_name] = module
+    sys.path.pop(0)
     return module
     
 
