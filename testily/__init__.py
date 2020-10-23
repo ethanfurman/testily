@@ -1,4 +1,4 @@
-version = 0, 0, 2, 4
+version = 0, 0, 2, 6
 
 from antipathy import Path
 from scription import Sentinel
@@ -36,65 +36,80 @@ def import_script(file, module_name=None):
     
 
 class Ersatz(object):
-    #
-    __slots__ = '_called_args_', '_called_kwds_', '__dict__', '_return_',
-    #
+
     def __init__(self, name=None):
         self._name_ = name
         self._called_args_ = []
         self._called_kwds_ = []
         self._return_ = None
-    #
+
     def __repr__(self):
         if self._name_ is None:
             return "Ersatz()"
         else:
-            return "Ersatz(%r)" % (self.name, )
-    #
+            return "Ersatz(%r)" % (self._name_, )
+
     def __call__(self, *args, **kwds):
         self._called_args_.append(args)
         self._called_kwds_.append(kwds)
         return self._return_
-    #
-    def __getattr__(self, name):
-        if name[:2] == name[-2:] == '__':
-            return super(Ersatz, self).__getattribute__(name)
-        return self.__class__(name)
-    #
+
     @property
     def _called_(self):
         return len(self._called_args_)
 
 
-
+_patch_attrs = '_namespace_', '_original_objs_', '_original_attrs_'
 class Patch(object):
-    #
-    def __init__(self, namespace, *names):
-        self.namespace = namespace
-        self.original_objs = {}
+
+    def __init__(self, namespace, *names, **attrs):
+        self._namespace_ = namespace
+        self._original_objs_ = {}
+        self._original_attrs_ = {}
         try:
             for name in names:
                 obj = namespace.__dict__.get(name, Null)
                 patch = Ersatz(name)
                 setattr(self, name, patch)
                 setattr(namespace, name, patch)
-                self.original_objs[name] = obj
+                self._original_objs_[name] = obj
+            for name, new_obj in attrs.items():
+                orig_obj = namespace.__dict__.get(name, Null)
+                setattr(self, name, new_obj)
+                setattr(namespace, name, new_obj)
+                self._original_attrs_[name] = orig_obj
         except Exception:
-            for name, obj in self.original_objs.items():
+            for name, obj in (
+                    list(self._original_objs_.items()) + list(self._original_attrs_.items())
+                ):
                 if obj is not Null:
                     setattr(namespace, name, obj)
                 else:
                     delattr(namespace, name)
             raise
-    #
+
     def __enter__(self):
         return self
-    #
+
     def __exit__(self, *exc):
-        for name, obj in self.original_objs.items():
+        for name, obj in (
+                list(self._original_objs_.items()) + list(self._original_attrs_.items())
+            ):
             if obj is not Null:
-                setattr(self.namespace, name, obj)
+                setattr(self._namespace_, name, obj)
             else:
-                delattr(self.namespace, name)
+                delattr(self._namespace_, name)
+
+    def __setattr__(self, name, value):
+        if name in _patch_attrs:
+            pass
+        elif name in self._original_objs_:
+            self._original_objs_[name] = value
+            return
+        elif name in self._original_attrs_:
+            self._original_attrs_[name] = value
+            return
+        object.__setattr__(self, name, value)
+
 
 Null = Sentinel('Null', boolean=False)

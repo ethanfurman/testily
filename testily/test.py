@@ -47,7 +47,7 @@ class TestPatch(TestCase):
             self.assertTrue(isinstance(testily.Ersatz, Ersatz))
             self.assertTrue(isinstance(p.Ersatz, Ersatz))
             self.assertTrue(p.Ersatz is testily.Ersatz)
-            self.assertTrue(p.original_objs['Ersatz'] is Ersatz)
+            self.assertTrue(p._original_objs_['Ersatz'] is Ersatz)
         self.assertTrue(Ersatz == testily.Ersatz)
 
     def test_init_failure(self):
@@ -96,6 +96,31 @@ class TestPatch(TestCase):
             self.assertEqual(UnBreakable.__dict__.get('immovable', 'gone'), 'gone')
             self.assertTrue(isinstance(getattr(UnBreakable, 'immovable'), Ersatz))
         self.assertTrue(UnBreakable.immovable is original_immovable)
+
+    def test_attr_patch(self):
+        class Stuff(object):
+            theirs = lambda s, x: x + 9
+            def __init__(self):
+                self.this = 'that'
+                self.these = 9
+        stuff = Stuff()
+        # test unpatched
+        self.assertEqual(stuff.this, 'that')
+        self.assertEqual(stuff.these, 9)
+        self.assertEqual(stuff.theirs(3), 12)
+        # test patched
+        with Patch(stuff, this='what?', these=1, theirs=lambda: 7) as p:
+            # test instance attrs
+            self.assertEqual(stuff.this, 'what?')
+            self.assertEqual(p.this, 'what?')
+            self.assertEqual(stuff.these, 1)
+            self.assertEqual(p.these, 1)
+            self.assertEqual(stuff.theirs(), 7)
+            self.assertEqual(p.theirs(), 7)
+        # test unpatched
+        self.assertEqual(stuff.this, 'that')
+        self.assertEqual(stuff.these, 9)
+        self.assertEqual(stuff.theirs(4), 13)
 
 
 class TestImportScript(TestCase):
