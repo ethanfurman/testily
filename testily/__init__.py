@@ -1,4 +1,4 @@
-version = 0, 0, 2, 6
+version = 0, 0, 2, 9
 
 from antipathy import Path
 from scription import Sentinel
@@ -69,6 +69,10 @@ class Patch(object):
         try:
             for name in names:
                 obj = namespace.__dict__.get(name, Null)
+                if obj is Null:
+                    # verify that it is somewhere in the mro()
+                    if not hasattr(namespace, name):
+                        raise Exception('%s: %r not found' % (namespace, name))
                 patch = Ersatz(name)
                 setattr(self, name, patch)
                 setattr(namespace, name, patch)

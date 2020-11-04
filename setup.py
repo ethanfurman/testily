@@ -11,7 +11,7 @@ make = []
 
 data = dict(
         name='testily',
-        version='0.0.2a6',
+        version='0.0.2a9',
         license='BSD License',
         description='various tools to help with testing',
         long_description='various tools to help with testing',
