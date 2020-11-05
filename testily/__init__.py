@@ -72,7 +72,7 @@ class Patch(object):
                 if obj is Null:
                     # verify that it is somewhere in the mro()
                     if not hasattr(namespace, name):
-                        raise Exception('%s: %r not found' % (namespace, name))
+                        raise Exception('%s: %r not found' % (namespace.__name__, name))
                 patch = Ersatz(name)
                 setattr(self, name, patch)
                 setattr(namespace, name, patch)
